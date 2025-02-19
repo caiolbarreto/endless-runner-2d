@@ -18,7 +18,7 @@ class Game:
         self.FPS = 60
 
         # Create player
-        self.player = Player(100, self.HEIGHT - 100)
+        self.player = Player(100, self.HEIGHT)
 
         # Game objects
         self.obstacles = []
@@ -43,7 +43,7 @@ class Game:
             if random.random() < 0.7:  # 70% chance for obstacle
                 self.obstacles.append(Obstacle(self.WIDTH, self.HEIGHT - 50))
             elif random.random() < 0.3:  # 30% chance for power-up
-                self.powerups.append(PowerUp(self.WIDTH, self.HEIGHT - 100))
+                self.powerups.append(PowerUp(self.WIDTH, self.HEIGHT - 20))
 
     def update(self):
         # Update player
