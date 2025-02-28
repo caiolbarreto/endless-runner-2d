@@ -1,8 +1,10 @@
-import pygame
-import sys
-from player import Player
-from game_objects import Obstacle, PowerUp
 import random
+import sys
+
+import pygame
+
+from game_objects import FlyPowerUp, Obstacle, SlowPowerUp
+from player import Player
 
 
 class Game:
@@ -18,7 +20,7 @@ class Game:
         self.FPS = 60
 
         # Create player
-        self.player = Player(100, self.HEIGHT)
+        self.player = Player(125, self.HEIGHT)
 
         # Game objects
         self.obstacles = []
@@ -43,7 +45,10 @@ class Game:
             if random.random() < 0.7:  # 70% chance for obstacle
                 self.obstacles.append(Obstacle(self.WIDTH, self.HEIGHT - 50))
             elif random.random() < 0.3:  # 30% chance for power-up
-                self.powerups.append(PowerUp(self.WIDTH, self.HEIGHT - 20))
+                if random.random() < 0.5:  # 50% chance for FlyPowerUp
+                    self.powerups.append(FlyPowerUp(self.WIDTH, self.HEIGHT - 20))
+                else:
+                    self.powerups.append(SlowPowerUp(self.WIDTH, self.HEIGHT - 20))
 
     def update(self):
         # Update player
@@ -70,8 +75,11 @@ class Game:
             # Collision detection
             if self.player.rect.colliderect(powerup.rect):
                 self.powerups.remove(powerup)
-                self.game_speed -= 1  # Slow down game
-                self.player.jump_power += 1  # Increase jump power
+                if isinstance(powerup, FlyPowerUp):
+                    self.player.activate_fly_power(powerup.duration)
+                else:
+                    self.game_speed -= 1  # Slow down game
+                    self.player.jump_power += 1  # Increase jump power
 
         # Increase game speed gradually
         if self.score % 10 == 0 and self.score > 0:
