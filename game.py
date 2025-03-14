@@ -267,6 +267,7 @@ class Game:
     def update(self):
         if self.game_over:
             self.game_over_delay -= 1
+            self.player.load_grave_image()
             return True
         
         # Update clouds
