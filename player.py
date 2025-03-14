@@ -12,7 +12,7 @@ class Player:
 
         # Load Sam Altman sprite
         self.sprite = None
-        self.try_load_sprite()
+        self.load_default_image()
 
         # Movement variables
         self.velocity_y = 0
@@ -47,7 +47,7 @@ class Player:
         self.invincible = False
         self.invincible_timer = 0
 
-    def try_load_sprite(self):
+    def load_default_image(self):
         try:
             # Try to load the sprite image - if it exists
             self.sprite = pygame.image.load(
@@ -59,6 +59,16 @@ class Player:
             self.sprite = pygame.Surface(
                 (self.width, self.height), pygame.SRCALPHA)
             self.sprite.fill((200, 150, 100))  # Placeholder color
+
+    def load_grave_image(self):
+        try:
+            grave_path = "assets/grave.png"
+            self.sprite = pygame.image.load(
+                grave_path).convert_alpha()
+            self.sprite = pygame.transform.scale(
+                self.sprite, (self.width + 30, self.height + 20))
+        except:
+            print("Could not load grave image")
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:

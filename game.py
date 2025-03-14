@@ -38,6 +38,31 @@ class Game:
         self.obstacles = []
         self.powerups = []
 
+        # Add decorative elements lists
+        self.clouds = []
+        self.trees = []
+        
+        # Spawn rates for decorative elements
+        self.cloud_spawn_timer = 0
+        self.tree_spawn_timer = 0
+        
+        try:
+            cloud_original = pygame.image.load("assets/cloud.png").convert_alpha()
+            tree_original = pygame.image.load("assets/tree.png").convert_alpha()
+            
+            
+            cloud_width = int(cloud_original.get_width() * 0.3)  
+            cloud_height = int(cloud_original.get_height() * 0.3)
+            tree_width = int(tree_original.get_width() * 0.2)    
+            tree_height = int(tree_original.get_height() * 0.2)
+            
+            self.cloud_image = pygame.transform.scale(cloud_original, (cloud_width, cloud_height))
+            self.tree_image = pygame.transform.scale(tree_original, (tree_width, tree_height))
+        except:
+            print("Warning: Could not load cloud or tree assets")
+            self.cloud_image = None
+            self.tree_image = None
+
         # Game state
         self.score = 0
         self.distance = 0
@@ -227,10 +252,35 @@ class Game:
                 self.powerups.append(InvestmentBonus(self.WIDTH, height))
 
 
+    def spawn_decorative_elements(self):
+        # Spawn clouds
+        self.cloud_spawn_timer += 1
+        if self.cloud_spawn_timer >= 120 and self.cloud_image:  
+            self.cloud_spawn_timer = 0
+            cloud_y = random.randint(20, self.HEIGHT // 2 - 50) 
+            self.clouds.append({
+                'x': self.WIDTH,
+                'y': cloud_y,
+                'speed': random.uniform(0.3, 1.0)  
+            })
+
     def update(self):
         if self.game_over:
             self.game_over_delay -= 1
+            self.player.load_grave_image()
             return True
+        
+        # Update clouds
+        for cloud in self.clouds[:]:
+            cloud['x'] -= cloud['speed'] * self.game_speed
+            if cloud['x'] + self.cloud_image.get_width() < 0:
+                self.clouds.remove(cloud)
+
+        # Update trees
+        for tree in self.trees[:]:
+            tree['x'] -= self.game_speed * 2  # Trees move faster for foreground effect
+            if tree['x'] + self.tree_image.get_width() < 0:
+                self.trees.remove(tree)
 
         # Update background positions (parallax)
         for i in range(len(self.backgrounds)):
@@ -385,6 +435,16 @@ class Game:
         ground_color = (100, 180, 100)  # Green ground
         pygame.draw.rect(self.screen, ground_color,
                          (0, self.HEIGHT - 50, self.WIDTH, 50))
+        
+        # Draw clouds
+        if self.cloud_image:
+            for cloud in self.clouds:
+                self.screen.blit(self.cloud_image, (int(cloud['x']), cloud['y']))
+
+        # Draw ground
+        ground_color = (100, 180, 100)  # Green ground
+        pygame.draw.rect(self.screen, ground_color,
+                         (0, self.HEIGHT - 50, self.WIDTH, 50))
 
         # Draw grid lines on ground (sci-fi effect)
         for i in range(0, self.WIDTH, 50):
@@ -392,6 +452,11 @@ class Game:
             pygame.draw.line(self.screen, (120, 200, 120),
                              (x_pos, self.HEIGHT - 50),
                              (x_pos, self.HEIGHT), 1)
+            
+        # Draw trees
+        if self.tree_image:
+            for tree in self.trees:
+                self.screen.blit(self.tree_image, (int(tree['x']), tree['y']))
 
         # Draw obstacles
         for obstacle in self.obstacles:
@@ -504,6 +569,7 @@ class Game:
             running = self.handle_events()
             if not self.game_over:
                 self.spawn_objects()
+                self.spawn_decorative_elements()
             running = self.update() and running
             self.draw()
             self.clock.tick(self.FPS)
