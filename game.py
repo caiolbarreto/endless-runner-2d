@@ -6,7 +6,7 @@ import os
 
 from player import Player
 from whale import Whale
-from game_objects import Obstacle, JetpackFuel, InvestmentBonus, ShieldPowerUp, MagnetPowerUp, DoublePointsPowerUp, FlyingDrone, TimeSlowPowerUp, LaserBeam
+from game_objects import Obstacle, JetpackFuel, InvestmentBonus, ShieldPowerUp, MagnetPowerUp, DoublePointsPowerUp, FlyingDrone, TimeSlowPowerUp, LaserBeam, DeepfakePowerUp
 
 
 class Game:
@@ -41,23 +41,29 @@ class Game:
         # Add decorative elements lists
         self.clouds = []
         self.trees = []
-        
+
         # Spawn rates for decorative elements
         self.cloud_spawn_timer = 0
         self.tree_spawn_timer = 0
-        
+
+        self.deepfake_chance = 0.2  # 20% de chance de um power-up ser um deepfake
+        self.glitch_sound = None
+
         try:
-            cloud_original = pygame.image.load("assets/cloud.png").convert_alpha()
-            tree_original = pygame.image.load("assets/tree.png").convert_alpha()
-            
-            
-            cloud_width = int(cloud_original.get_width() * 0.3)  
+            cloud_original = pygame.image.load(
+                "assets/cloud.png").convert_alpha()
+            tree_original = pygame.image.load(
+                "assets/tree.png").convert_alpha()
+
+            cloud_width = int(cloud_original.get_width() * 0.3)
             cloud_height = int(cloud_original.get_height() * 0.3)
-            tree_width = int(tree_original.get_width() * 0.2)    
+            tree_width = int(tree_original.get_width() * 0.2)
             tree_height = int(tree_original.get_height() * 0.2)
-            
-            self.cloud_image = pygame.transform.scale(cloud_original, (cloud_width, cloud_height))
-            self.tree_image = pygame.transform.scale(tree_original, (tree_width, tree_height))
+
+            self.cloud_image = pygame.transform.scale(
+                cloud_original, (cloud_width, cloud_height))
+            self.tree_image = pygame.transform.scale(
+                tree_original, (tree_width, tree_height))
         except:
             print("Warning: Could not load cloud or tree assets")
             self.cloud_image = None
@@ -66,7 +72,7 @@ class Game:
         # Game state
         self.score = 0
         self.distance = 0
-        self.base_game_speed = 5
+        self.base_game_speed = 8
         self.game_speed = self.base_game_speed
         self.max_game_speed = 12
         self.spawn_timer = 0
@@ -97,7 +103,6 @@ class Game:
         self.magnet_timer = 0  # Timer for magnet power-up
         self.double_points_active = False  # Whether double points power-up is active
         self.double_points_timer = 0  # Timer for double points power-up
-
 
     def load_backgrounds(self):
         """Load or create background layers for parallax effect"""
@@ -198,9 +203,11 @@ class Game:
         # Check if any obstacle is too close to the right edge
         rightmost_object = 0
         for obstacle in self.obstacles:
-            rightmost_object = max(rightmost_object, obstacle.rect.x + obstacle.rect.width)
+            rightmost_object = max(
+                rightmost_object, obstacle.rect.x + obstacle.rect.width)
         for powerup in self.powerups:
-            rightmost_object = max(rightmost_object, powerup.rect.x + powerup.rect.width)
+            rightmost_object = max(
+                rightmost_object, powerup.rect.x + powerup.rect.width)
 
         # Only spawn if there's enough space
         can_spawn = (rightmost_object < self.WIDTH - self.obstacle_gap)
@@ -211,57 +218,73 @@ class Game:
 
             # Obstacle with increasing chance based on difficulty
             if spawn_chance < self.obstacle_chance:
-                obstacle_type = random.choice(["server", "competitor", "regulation", "drone", "laser", "mine"])
+                obstacle_type = random.choice(
+                    ["server", "competitor", "regulation", "drone", "laser", "mine"])
                 if obstacle_type == "drone":
                     # Spawn a flying drone at a random height
-                    self.obstacles.append(FlyingDrone(self.WIDTH, random.randint(100, self.HEIGHT - 150), self.HEIGHT))
+                    self.obstacles.append(FlyingDrone(
+                        self.WIDTH, random.randint(100, self.HEIGHT - 150), self.HEIGHT))
                 elif obstacle_type == "laser":
                     # Spawn a laser beam at a random height
-                    self.obstacles.append(LaserBeam(self.WIDTH, random.randint(100, self.HEIGHT - 150), self.WIDTH))
+                    self.obstacles.append(
+                        LaserBeam(self.WIDTH, random.randint(100, self.HEIGHT - 150), self.WIDTH))
                 else:
                     # Spawn a regular obstacle (server, competitor, regulation)
-                    self.obstacles.append(Obstacle(self.WIDTH, self.HEIGHT - 50))
+                    self.obstacles.append(
+                        Obstacle(self.WIDTH, self.HEIGHT - 50))
 
             # Power-ups with decreasing chance based on difficulty
             elif spawn_chance < self.obstacle_chance + 0.2:
-                powerup_type = random.choice(["jetpack_fuel", "shield", "time_slow", "magnet", "double_points"])
-                if powerup_type == "jetpack_fuel":
-                    # Spawn jetpack fuel at a random height
-                    height = random.randint(self.HEIGHT - 300, self.HEIGHT - 100)
-                    self.powerups.append(JetpackFuel(self.WIDTH, height))
-                elif powerup_type == "shield":
-                    # Spawn shield power-up at a random height
-                    height = random.randint(self.HEIGHT - 250, self.HEIGHT - 150)
-                    self.powerups.append(ShieldPowerUp(self.WIDTH, height))
-                elif powerup_type == "time_slow":
-                    # Spawn time slow power-up at a random height
-                    height = random.randint(self.HEIGHT - 300, self.HEIGHT - 100)
-                    self.powerups.append(TimeSlowPowerUp(self.WIDTH, height))
-                elif powerup_type == "magnet":
-                    # Spawn magnet power-up at a random height
-                    height = random.randint(self.HEIGHT - 300, self.HEIGHT - 100)
-                    self.powerups.append(MagnetPowerUp(self.WIDTH, height))
-                elif powerup_type == "double_points":
-                    # Spawn double points power-up at a random height
-                    height = random.randint(self.HEIGHT - 300, self.HEIGHT - 100)
-                    self.powerups.append(DoublePointsPowerUp(self.WIDTH, height))
+                # Decision point: normal power-up or deepfake?
+                is_deepfake = random.random() < self.deepfake_chance
 
-            # Investment bonus (score boost)
-            elif spawn_chance < self.obstacle_chance + 0.3:
-                height = random.randint(self.HEIGHT - 350, self.HEIGHT - 100)
-                self.powerups.append(InvestmentBonus(self.WIDTH, height))
-
+                if is_deepfake:
+                    # Spawn a deepfake power-up that looks like a bonus but is actually an obstacle
+                    height = random.randint(
+                        self.HEIGHT - 300, self.HEIGHT - 100)
+                    self.powerups.append(DeepfakePowerUp(self.WIDTH, height))
+                else:
+                    # Regular power-ups as before
+                    powerup_type = random.choice(
+                        ["jetpack_fuel", "shield", "time_slow", "magnet", "double_points"])
+                    if powerup_type == "jetpack_fuel":
+                        # Spawn jetpack fuel at a random height
+                        height = random.randint(
+                            self.HEIGHT - 300, self.HEIGHT - 100)
+                        self.powerups.append(JetpackFuel(self.WIDTH, height))
+                    elif powerup_type == "shield":
+                        # Spawn shield power-up at a random height
+                        height = random.randint(
+                            self.HEIGHT - 250, self.HEIGHT - 150)
+                        self.powerups.append(ShieldPowerUp(self.WIDTH, height))
+                    elif powerup_type == "time_slow":
+                        # Spawn time slow power-up at a random height
+                        height = random.randint(
+                            self.HEIGHT - 300, self.HEIGHT - 100)
+                        self.powerups.append(
+                            TimeSlowPowerUp(self.WIDTH, height))
+                    elif powerup_type == "magnet":
+                        # Spawn magnet power-up at a random height
+                        height = random.randint(
+                            self.HEIGHT - 300, self.HEIGHT - 100)
+                        self.powerups.append(MagnetPowerUp(self.WIDTH, height))
+                    elif powerup_type == "double_points":
+                        # Spawn double points power-up at a random height
+                        height = random.randint(
+                            self.HEIGHT - 300, self.HEIGHT - 100)
+                        self.powerups.append(
+                            DoublePointsPowerUp(self.WIDTH, height))
 
     def spawn_decorative_elements(self):
         # Spawn clouds
         self.cloud_spawn_timer += 1
-        if self.cloud_spawn_timer >= 120 and self.cloud_image:  
+        if self.cloud_spawn_timer >= 120 and self.cloud_image:
             self.cloud_spawn_timer = 0
-            cloud_y = random.randint(20, self.HEIGHT // 2 - 50) 
+            cloud_y = random.randint(20, self.HEIGHT // 2 - 50)
             self.clouds.append({
                 'x': self.WIDTH,
                 'y': cloud_y,
-                'speed': random.uniform(0.3, 1.0)  
+                'speed': random.uniform(0.3, 1.0)
             })
 
     def update(self):
@@ -269,7 +292,7 @@ class Game:
             self.game_over_delay -= 1
             self.player.load_grave_image()
             return True
-        
+
         # Update clouds
         for cloud in self.clouds[:]:
             cloud['x'] -= cloud['speed'] * self.game_speed
@@ -278,13 +301,15 @@ class Game:
 
         # Update trees
         for tree in self.trees[:]:
-            tree['x'] -= self.game_speed * 2  # Trees move faster for foreground effect
+            # Trees move faster for foreground effect
+            tree['x'] -= self.game_speed * 2
             if tree['x'] + self.tree_image.get_width() < 0:
                 self.trees.remove(tree)
 
         # Update background positions (parallax)
         for i in range(len(self.backgrounds)):
-            self.bg_positions[i] -= self.backgrounds[i]["speed"] * self.game_speed
+            self.bg_positions[i] -= self.backgrounds[i]["speed"] * \
+                self.game_speed
             if self.bg_positions[i] <= -self.WIDTH:
                 self.bg_positions[i] = 0
 
@@ -328,32 +353,54 @@ class Game:
 
         # Update power-ups
         for powerup in self.powerups[:]:
-            powerup.update(self.game_speed)
+            # Se for um deepfake, passe a posição do jogador para verificar proximidade
+            if isinstance(powerup, DeepfakePowerUp):
+                powerup.update(self.game_speed, self.player.rect)
+
+                # Se estiver transformando e tiver som de glitch, tocar uma vez
+                if powerup.is_transforming and powerup.glitch_timer == powerup.glitch_duration - 1 and self.glitch_sound:
+                    self.glitch_sound.play()
+            else:
+                powerup.update(self.game_speed)
+
             if powerup.rect.right < 0:
                 self.powerups.remove(powerup)
 
             # Collision detection for power-ups
             if self.player.rect.colliderect(powerup.rect):
                 self.powerups.remove(powerup)
-                if self.sounds["pickup"]:
-                    self.sounds["pickup"].play()
 
-                if isinstance(powerup, JetpackFuel):
-                    self.player.add_fuel(powerup.fuel_amount)
-                elif isinstance(powerup, ShieldPowerUp):
-                    self.shield_active = True
-                    self.shield_timer = powerup.duration * 60  # Convert to frames
-                elif isinstance(powerup, TimeSlowPowerUp):
-                    self.game_speed = max(2, self.game_speed / 2)  # Slow down game speed
-                    self.slow_timer = powerup.duration * 60
-                elif isinstance(powerup, MagnetPowerUp):
-                    self.magnet_active = True
-                    self.magnet_timer = powerup.duration * 60
-                elif isinstance(powerup, DoublePointsPowerUp):
-                    self.double_points_active = True
-                    self.double_points_timer = powerup.duration * 60
-                elif isinstance(powerup, InvestmentBonus):
-                    self.score += powerup.points
+                # Verificar se é um deepfake e já se transformou em obstáculo
+                if isinstance(powerup, DeepfakePowerUp) and powerup.display_type == "obstacle":
+                    # Colisão com um deepfake que se revelou ser um obstáculo
+                    if not self.shield_active and not self.player.invincible:
+                        self.game_over = True
+                        if self.sounds["crash"]:
+                            self.sounds["crash"].play()
+                        print(
+                            f"Game Over! Caught by a deepfake! Score: {self.score}")
+                else:
+                    # Normal power-up pickup logic
+                    if self.sounds["pickup"]:
+                        self.sounds["pickup"].play()
+
+                    if isinstance(powerup, JetpackFuel):
+                        self.player.add_fuel(powerup.fuel_amount)
+                    elif isinstance(powerup, ShieldPowerUp):
+                        self.shield_active = True
+                        self.shield_timer = powerup.duration * 60  # Convert to frames
+                    elif isinstance(powerup, TimeSlowPowerUp):
+                        # Slow down game speed
+                        self.game_speed = max(2, self.game_speed / 2)
+                        self.slow_timer = powerup.duration * 60
+                    elif isinstance(powerup, MagnetPowerUp):
+                        self.magnet_active = True
+                        self.magnet_timer = powerup.duration * 60
+                    elif isinstance(powerup, DoublePointsPowerUp):
+                        self.double_points_active = True
+                        self.double_points_timer = powerup.duration * 60
+                    elif isinstance(powerup, InvestmentBonus):
+                        self.score += powerup.points
 
         # Update shield timer
         if self.shield_active:
@@ -382,7 +429,8 @@ class Game:
         # Magnet effect: Attract nearby power-ups
         if self.magnet_active:
             for powerup in self.powerups[:]:
-                if powerup.rect.colliderect(self.player.rect.inflate(100, 100)):  # Attract within 100px radius
+                # Attract within 100px radius
+                if powerup.rect.colliderect(self.player.rect.inflate(100, 100)):
                     # Move power-up toward player
                     if powerup.rect.x > self.player.rect.x:
                         powerup.rect.x -= 5
@@ -418,6 +466,7 @@ class Game:
 
         # Increase obstacle chance
         self.obstacle_chance = min(0.7, self.obstacle_chance + 0.05)
+        self.deepfake_chance = min(0.15, self.deepfake_chance + 0.02)
 
         # Reduce obstacle gap for more dense challenges
         self.obstacle_gap = max(200, self.obstacle_gap - 20)
@@ -435,11 +484,12 @@ class Game:
         ground_color = (100, 180, 100)  # Green ground
         pygame.draw.rect(self.screen, ground_color,
                          (0, self.HEIGHT - 50, self.WIDTH, 50))
-        
+
         # Draw clouds
         if self.cloud_image:
             for cloud in self.clouds:
-                self.screen.blit(self.cloud_image, (int(cloud['x']), cloud['y']))
+                self.screen.blit(self.cloud_image,
+                                 (int(cloud['x']), cloud['y']))
 
         # Draw ground
         ground_color = (100, 180, 100)  # Green ground
@@ -452,7 +502,7 @@ class Game:
             pygame.draw.line(self.screen, (120, 200, 120),
                              (x_pos, self.HEIGHT - 50),
                              (x_pos, self.HEIGHT), 1)
-            
+
         # Draw trees
         if self.tree_image:
             for tree in self.trees:
@@ -560,6 +610,30 @@ class Game:
                 restart_rect = restart_text.get_rect(
                     center=(self.WIDTH // 2, self.HEIGHT // 2 + 50))
                 self.screen.blit(restart_text, restart_rect)
+
+        if any(isinstance(p, DeepfakePowerUp) and p.is_transforming for p in self.powerups):
+            warning_text = self.font.render(
+                "⚠️ ALERTA: DEEPFAKE DETECTADO! ⚠️", True, (255, 50, 50))
+            warning_rect = warning_text.get_rect(center=(self.WIDTH // 2, 50))
+            self.screen.blit(warning_text, warning_rect)
+
+            # Adicionar indicador visual de onde está o deepfake
+            for powerup in self.powerups:
+                if isinstance(powerup, DeepfakePowerUp) and powerup.is_transforming:
+                    # Desenha uma seta ou indicador apontando para o deepfake
+                    pygame.draw.line(self.screen, (255, 0, 0),
+                                     (self.WIDTH // 2, 80),
+                                     (powerup.rect.centerx, powerup.rect.y - 20),
+                                     3)
+                    pygame.draw.polygon(self.screen, (255, 0, 0), [
+                        (powerup.rect.centerx, powerup.rect.y - 25),
+                        (powerup.rect.centerx - 10, powerup.rect.y - 40),
+                        (powerup.rect.centerx + 10, powerup.rect.y - 40)
+                    ])
+        elif any(isinstance(p, DeepfakePowerUp) and p.display_type == "obstacle" for p in self.powerups):
+            warning_text = self.small_font.render(
+                "CUIDADO: Deepfakes detectados! Nem tudo é o que parece.", True, (255, 50, 50))
+            self.screen.blit(warning_text, (self.WIDTH // 2 - 200, 10))
 
         pygame.display.flip()
 
