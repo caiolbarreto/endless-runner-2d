@@ -72,7 +72,7 @@ class Game:
         # Game state
         self.score = 0
         self.distance = 0
-        self.base_game_speed = 8
+        self.base_game_speed = 7
         self.game_speed = self.base_game_speed
         self.max_game_speed = 12
         self.spawn_timer = 0
@@ -115,11 +115,12 @@ class Game:
         # Try to load background images if they exist
         try:
             backgrounds[0]["img"] = pygame.image.load(
-                "assets/bg_sky.png").convert()
+                "assets/background.png").convert()
             backgrounds[1]["img"] = pygame.image.load(
-                "assets/bg_mid.png").convert()
+                "assets/background.png").convert()
             backgrounds[2]["img"] = pygame.image.load(
-                "assets/bg_fore.png").convert()
+                "assets/background.png").convert()
+            
         except:
             # Create solid color backgrounds if images don't exist
             for i, bg in enumerate(backgrounds):
