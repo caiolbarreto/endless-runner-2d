@@ -1,12 +1,24 @@
-import pygame
-import sys
-import random
 import math
 import os
+import random
+import sys
 
+import pygame
+
+from game_objects import (
+    DeepfakePowerUp,
+    DoublePointsPowerUp,
+    FlyingDrone,
+    InvestmentBonus,
+    JetpackFuel,
+    LaserBeam,
+    MagnetPowerUp,
+    Obstacle,
+    ShieldPowerUp,
+    TimeSlowPowerUp,
+)
 from player import Player
 from whale import Whale
-from game_objects import Obstacle, JetpackFuel, InvestmentBonus, ShieldPowerUp, MagnetPowerUp, DoublePointsPowerUp, FlyingDrone, TimeSlowPowerUp, LaserBeam, DeepfakePowerUp
 
 
 class Game:
@@ -321,12 +333,12 @@ class Game:
         self.whale.update(self.player.rect.x, self.game_speed)
 
         # Check collision with whale (game over)
-        if self.player.rect.colliderect(self.whale.rect) and not self.shield_active and not self.player.invincible:
-            self.game_over = True
-            if self.sounds["crash"]:
-                self.sounds["crash"].play()
-            print(f"Game Over! Score: {self.score}")
-            return True
+        # if self.player.rect.colliderect(self.whale.rect) and not self.shield_active and not self.player.invincible:
+        #     self.game_over = True
+        #     if self.sounds["crash"]:
+        #         self.sounds["crash"].play()
+        #     print(f"Game Over! Score: {self.score}")
+        #     return True
 
         # Update obstacles
         for obstacle in self.obstacles[:]:
