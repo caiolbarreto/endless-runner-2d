@@ -100,8 +100,8 @@ class Game:
         self.next_milestone = 500  # Distance for next difficulty increase
 
         # Font for game information
-        self.font = pygame.font.Font(None, 36)
-        self.small_font = pygame.font.Font(None, 24)
+        self.font = pygame.font.Font("assets/fonts/ShareTechMono-Regular.ttf", 36)
+        self.small_font = pygame.font.Font("assets/fonts/ShareTechMono-Regular.ttf", 24)
 
         # Game over state
         self.game_over = False
@@ -593,7 +593,7 @@ class Game:
         for i, control in enumerate(controls_text):
             control_text = self.small_font.render(
                 f"{control['key']}: {control['action']}", True, (30, 30, 30))
-            self.screen.blit(control_text, (self.WIDTH - 300, 10 + i * 30))
+            self.screen.blit(control_text, (self.WIDTH - 450, 10 + i * 30))
 
         # Draw game over screen
         if self.game_over:
@@ -624,30 +624,39 @@ class Game:
                     center=(self.WIDTH // 2, self.HEIGHT // 2 + 50))
                 self.screen.blit(restart_text, restart_rect)
 
-        if any(isinstance(p, DeepfakePowerUp) and p.is_transforming for p in self.powerups):
-            warning_text = self.font.render(
-                "⚠️ ALERTA: DEEPFAKE DETECTADO! ⚠️", True, (255, 50, 50))
+        if any(isinstance(p, DeepfakePowerUp) and p.display_type == "obstacle" for p in self.powerups):
+            # Text settings
+            warning_message = "ALERTA: DEEPFAKE DETECTADO!"
+            text_color = (255, 255, 255)  # White text
+            bg_color = (200, 0, 0)  # Red background
+            
+            warning_text = self.font.render(warning_message, True, text_color)
             warning_rect = warning_text.get_rect(center=(self.WIDTH // 2, 50))
-            self.screen.blit(warning_text, warning_rect)
+            
+            # Background behind text
+            padding = 10
+            bg_rect = pygame.Rect(
+                warning_rect.left - padding, 
+                warning_rect.top - padding, 
+                warning_rect.width + (2 * padding), 
+                warning_rect.height + (2 * padding)
+            )
 
-            # Adicionar indicador visual de onde está o deepfake
+            pygame.draw.rect(self.screen, bg_color, bg_rect, border_radius=5)  # Red background with rounded corners
+            self.screen.blit(warning_text, warning_rect)  # Render text over background
+
+            # Draw indicator for deepfake location
             for powerup in self.powerups:
                 if isinstance(powerup, DeepfakePowerUp) and powerup.is_transforming:
-                    # Desenha uma seta ou indicador apontando para o deepfake
-                    pygame.draw.line(self.screen, (255, 0, 0),
-                                     (self.WIDTH // 2, 80),
-                                     (powerup.rect.centerx, powerup.rect.y - 20),
-                                     3)
-                    pygame.draw.polygon(self.screen, (255, 0, 0), [
+                    pygame.draw.line(self.screen, (255, 255, 255),
+                                    (self.WIDTH // 2, 80),
+                                    (powerup.rect.centerx, powerup.rect.y - 20),
+                                    3)
+                    pygame.draw.polygon(self.screen, (255, 255, 255), [
                         (powerup.rect.centerx, powerup.rect.y - 25),
                         (powerup.rect.centerx - 10, powerup.rect.y - 40),
                         (powerup.rect.centerx + 10, powerup.rect.y - 40)
                     ])
-        elif any(isinstance(p, DeepfakePowerUp) and p.display_type == "obstacle" for p in self.powerups):
-            warning_text = self.small_font.render(
-                "CUIDADO: Deepfakes detectados! Nem tudo é o que parece.", True, (255, 50, 50))
-            self.screen.blit(warning_text, (self.WIDTH // 2 - 200, 10))
-
         pygame.display.flip()
 
     def run(self):
